@@ -61,12 +61,12 @@
             </div>
 
             <div id="ssl-fix"
-                style="display:none; font-size: 0.75rem; color: #ff6b6b; margin-top: 10px; line-height: 1.4; border: 1px dashed #ff6b6b; padding: 10px; border-radius: 8px;">
-                <strong>⚠️ Erro de Conexão:</strong><br>
-                Como você está usando HTTPS, clique aqui e selecione "Avançado" > "Prosseguir" no Safari para autorizar
-                a TV:
-                <a href="https://192.168.3.8:8002/api/v2/" target="_blank"
-                    style="color: #fff; text-decoration: underline;">Autorizar TV</a>
+                style="display:none; font-size: 0.75rem; color: #ff6b6b; margin-top: 10px; line-height: 1.4; border: 1px dashed #ff6b6b; padding: 15px; border-radius: 8px; background: rgba(255,107,107,0.1);">
+                <strong>⚠️ iPhone Bloqueou a Conexão</strong><br>
+                Para funcionar no iPhone, toque no botão abaixo:
+                <button onclick="gerarModoiPhone()"
+                    style="margin-top:12px; width:100%; background: #2ecc71; border:none; color:white; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 15px rgba(46,204,113,0.3);">ATIVAR
+                    CONTROLE IPHONE</button>
             </div>
 
             <div id="connect-status" class="connect-status" aria-live="polite">
