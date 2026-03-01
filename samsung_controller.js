@@ -49,20 +49,18 @@ class SamsungRemote {
     }
 
     // Gera a URL de conexão com a TV
-    getWsUrl(port = 8001) {
-        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        // Se estivermos em HTTPS, o navegador OBRIGA o uso de WSS e geralmente porta 8002
-        const actualPort = window.location.protocol === 'https:' ? 8002 : port;
+    getWsUrl() {
         const base64Name = btoa(this.appName);
-
-        let url = `${protocol}://${this.tvIp}:${actualPort}/api/v2/channels/samsung.remote.control?name=${base64Name}`;
+        // Forçamos WS e porta 8001. No iOS, se o site for HTTPS, 
+        // o navegador PODE bloquear, mas o WSS (8002) FECHA por falta de certificado.
+        let url = `ws://${this.tvIp}:8001/api/v2/channels/samsung.remote.control?name=${base64Name}`;
         if (this.token) {
             url += `&token=${this.token}`;
         }
         return url;
     }
 
-    connect(retryWithPort8001 = true) {
+    connect() {
         return new Promise((resolve, reject) => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                 resolve();
@@ -70,25 +68,23 @@ class SamsungRemote {
             }
 
             const url = this.getWsUrl();
-            console.log('🔄 Tentando conectar:', url);
+            console.log('📡 Tentando:', url);
             this.ws = new WebSocket(url);
 
             const timeout = setTimeout(() => {
                 if (this.ws.readyState !== WebSocket.OPEN) {
                     this.ws.close();
-                    reject(new Error('Timeout na conexão'));
+                    reject(new Error('Timeout'));
                 }
-            }, 5000);
+            }, 6000);
 
             this.ws.onopen = () => {
                 clearTimeout(timeout);
-                console.log('✅ Canal WebSocket aberto');
+                console.log('✅ Conectado!');
             };
 
             this.ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                console.log('📩 Mensagem da TV:', data);
-
                 if (data.event === 'ms.channel.connect') {
                     this.isConnected = true;
                     if (data.data && data.data.token) {
@@ -102,10 +98,8 @@ class SamsungRemote {
 
             this.ws.onerror = (err) => {
                 clearTimeout(timeout);
-                console.error('❌ Erro no WebSocket:', err);
+                console.error('❌ Erro:', err);
                 this.isConnected = false;
-
-                // Se falhou no 8002 e estamos em HTTPS, talvez a TV só aceite 8001 (mas o navegador vai bloquear)
                 if (this.onStatusChange) this.onStatusChange('error');
                 reject(err);
             };
