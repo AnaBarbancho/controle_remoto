@@ -60,23 +60,35 @@ class SamsungRemote {
         return url;
     }
 
-    connect() {
-        return new Promise((resolve, reject) => {
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                resolve();
-                return;
-            }
+    async connect() {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
 
+        console.log('📡 Iniciando pre-flight check...');
+        // Tenta um "ping" via HTTP antes. Isso as vezes limpa o bloqueio do iOS
+        try {
+            await Promise.race([
+                fetch(`http://${this.tvIp}:8001/api/v2/`).catch(() => { }),
+                new Promise((_, r) => setTimeout(r, 1500))
+            ]);
+        } catch (e) { console.log('Pre-flight ignorado'); }
+
+        return new Promise((resolve, reject) => {
             const url = this.getWsUrl();
-            console.log('📡 Tentando:', url);
-            this.ws = new WebSocket(url);
+            console.log('📡 Tentando conectar:', url);
+
+            try {
+                this.ws = new WebSocket(url);
+            } catch (e) {
+                console.error('Falha ao criar WebSocket:', e);
+                return reject(e);
+            }
 
             const timeout = setTimeout(() => {
                 if (this.ws.readyState !== WebSocket.OPEN) {
                     this.ws.close();
                     reject(new Error('Timeout'));
                 }
-            }, 6000);
+            }, 7000);
 
             this.ws.onopen = () => {
                 clearTimeout(timeout);
@@ -84,21 +96,23 @@ class SamsungRemote {
             };
 
             this.ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.event === 'ms.channel.connect') {
-                    this.isConnected = true;
-                    if (data.data && data.data.token) {
-                        this.token = data.data.token;
-                        localStorage.setItem('samsung_tv_token', this.token);
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.event === 'ms.channel.connect') {
+                        this.isConnected = true;
+                        if (data.data && data.data.token) {
+                            this.token = data.data.token;
+                            localStorage.setItem('samsung_tv_token', this.token);
+                        }
+                        if (this.onStatusChange) this.onStatusChange('connected');
+                        resolve();
                     }
-                    if (this.onStatusChange) this.onStatusChange('connected');
-                    resolve();
-                }
+                } catch (e) { }
             };
 
             this.ws.onerror = (err) => {
                 clearTimeout(timeout);
-                console.error('❌ Erro:', err);
+                console.error('❌ Erro WS:', err);
                 this.isConnected = false;
                 if (this.onStatusChange) this.onStatusChange('error');
                 reject(err);
