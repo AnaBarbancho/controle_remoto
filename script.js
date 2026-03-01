@@ -31,6 +31,7 @@ const btnMute = document.getElementById('btn-mute');
 const rippleContainer = document.getElementById('ripple-container');
 const btnDisconnect = document.getElementById('btn-disconnect');
 const deviceName = document.getElementById('device-name');
+const sslFix = document.getElementById('ssl-fix');
 
 /* ── Clock ──────────────────────────────────── */
 function updateClock() {
@@ -114,6 +115,11 @@ function handleDisconnect(msg) {
   setStatus('error', msg || 'Desconectado');
   btnConnect.disabled = false;
   showToast('⚠️ ' + (msg || 'Desconectado'));
+
+  // Se estivermos em HTTPS, mostrar dica de SSL
+  if (window.location.protocol === 'https:') {
+    sslFix.style.display = 'block';
+  }
 }
 
 /* ── Send command to TV ─────────────────────── */
