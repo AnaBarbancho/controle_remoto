@@ -3,7 +3,7 @@
  * Necessário para o PWA ser instalado no iPhone.
  */
 
-const CACHE_NAME = 'samsung-remote-v1';
+const CACHE_NAME = 'samsung-remote-v2';
 const ASSETS = [
     './',
     './index.html',
