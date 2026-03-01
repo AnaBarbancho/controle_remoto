@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<!-- v1.0.1 - Deploying Samsung Controller -->
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Controle Remoto TV</title>
+    <meta name="description" content="Controle remoto virtual para TV - interface otimizada para uso na televisão" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Controle TV">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- Scripts -->
+    <script src="samsung_controller.js"></script>
+</head>
+
+<body>
+
+    <!-- Ripple container -->
+    <div id="ripple-container"></div>
+    <!-- Toast notification -->
+    <div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+    <!-- ── CONNECTION SCREEN ───────────────────── -->
+    <div id="connect-screen" class="connect-screen">
+        <div class="connect-card">
+            <div class="connect-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <rect x="2" y="7" width="20" height="15" rx="2" />
+                    <polyline points="17 2 12 7 7 2" />
+                    <circle cx="12" cy="14.5" r="1.5" fill="currentColor" />
+                </svg>
+            </div>
+            <h1 class="connect-title">Conectar à Samsung</h1>
+            <p class="connect-desc">Digite o <strong>IP da TV</strong> Samsung.
+                Certifique-se que o celular e a TV estão no mesmo Wi-Fi.
+            </p>
+
+            <div class="connect-input-group">
+                <input type="text" id="room-input" class="room-input" placeholder="Ex: 192.168.3.8" value="192.168.3.8"
+                    autocomplete="off" autocorrect="off" spellcheck="false" aria-label="IP da TV" />
+                <button class="btn btn-connect" id="btn-connect" aria-label="Conectar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                    Conectar
+                </button>
+            </div>
+
+            <div id="connect-status" class="connect-status" aria-live="polite">
+                <span id="status-dot" class="status-dot-idle"></span>
+                <span id="status-text">Aguardando conexão...</span>
+            </div>
+
+            <div class="connect-hint">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                O IP da TV pode ser encontrado nas <strong>Configurações de Rede</strong> da sua Samsung.
+            </div>
+        </div>
+    </div>
+
+    <!-- ── REMOTE CONTROL ─────────────────────── -->
+    <main class="remote-wrapper" id="remote-wrapper" role="main" style="display:none">
+
+        <!-- Header / Status Bar -->
+        <header class="status-bar">
+            <div class="status-left">
+                <div class="device-indicator">
+                    <span class="device-dot"></span>
+                    <span id="device-name" class="device-name">Smart TV</span>
+                </div>
+            </div>
+            <div class="status-center">
+                <span id="clock" class="clock"></span>
+            </div>
+            <div class="status-right">
+                <button id="btn-disconnect" class="btn-disconnect" title="Desconectar" aria-label="Desconectar da TV">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                        <line x1="12" y1="2" x2="12" y2="12" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Remote Body -->
+        <div class="remote">
+
+            <!-- Power + Source Row -->
+            <section class="section-row top-row" aria-label="Energia e Fonte">
+                <button class="btn btn-icon btn-power" id="btn-power" data-action="power" aria-label="Ligar/Desligar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                        <line x1="12" y1="2" x2="12" y2="12" />
+                    </svg>
+                </button>
+
+                <div class="spacer"></div>
+
+                <button class="btn btn-icon btn-source" id="btn-source" data-action="source"
+                    aria-label="Fonte de Entrada">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
+                        <polyline points="17 2 12 7 7 2" />
+                    </svg>
+                </button>
+
+                <button class="btn btn-icon btn-home" id="btn-home" data-action="home" aria-label="Início">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                </button>
+            </section>
+
+            <!-- Volume + Channel Row -->
+            <section class="section-row volume-channel-row" aria-label="Volume e Canal">
+                <div class="control-group">
+                    <label class="group-label">VOL</label>
+                    <div class="vertical-buttons">
+                        <button class="btn btn-round btn-vol" id="btn-vol-up" data-action="vol-up"
+                            aria-label="Aumentar Volume">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="18 15 12 9 6 15" />
+                            </svg>
+                        </button>
+                        <button class="btn btn-round btn-mute" id="btn-mute" data-action="mute" aria-label="Mudo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                stroke-linecap="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                <line x1="23" y1="9" x2="17" y2="15" />
+                                <line x1="17" y1="9" x2="23" y2="15" />
+                            </svg>
+                        </button>
+                        <button class="btn btn-round btn-vol" id="btn-vol-down" data-action="vol-down"
+                            aria-label="Diminuir Volume">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- D-Pad -->
+                <div class="dpad" role="group" aria-label="Navegação direcional">
+                    <button class="btn dpad-up" id="btn-up" data-action="up" aria-label="Cima">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="18 15 12 9 6 15" />
+                        </svg>
+                    </button>
+                    <button class="btn dpad-left" id="btn-left" data-action="left" aria-label="Esquerda">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                    </button>
+                    <button class="btn dpad-ok" id="btn-ok" data-action="ok" aria-label="OK / Confirmar">
+                        <span>OK</span>
+                    </button>
+                    <button class="btn dpad-right" id="btn-right" data-action="right" aria-label="Direita">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                    </button>
+                    <button class="btn dpad-down" id="btn-down" data-action="down" aria-label="Baixo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <label class="group-label">CH</label>
+                    <div class="vertical-buttons">
+                        <button class="btn btn-round btn-ch" id="btn-ch-up" data-action="ch-up"
+                            aria-label="Canal anterior">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="18 15 12 9 6 15" />
+                            </svg>
+                        </button>
+                        <button class="btn btn-round btn-guide" id="btn-guide" data-action="guide" aria-label="Guia">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                stroke-linecap="round">
+                                <line x1="8" y1="6" x2="21" y2="6" />
+                                <line x1="8" y1="12" x2="21" y2="12" />
+                                <line x1="8" y1="18" x2="21" y2="18" />
+                                <line x1="3" y1="6" x2="3.01" y2="6" />
+                                <line x1="3" y1="12" x2="3.01" y2="12" />
+                                <line x1="3" y1="18" x2="3.01" y2="18" />
+                            </svg>
+                        </button>
+                        <button class="btn btn-round btn-ch" id="btn-ch-down" data-action="ch-down"
+                            aria-label="Próximo canal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Nav buttons row -->
+            <section class="section-row nav-row" aria-label="Navegação">
+                <button class="btn btn-text" id="btn-back" data-action="back" aria-label="Voltar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round">
+                        <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                    <span>Voltar</span>
+                </button>
+                <button class="btn btn-text" id="btn-menu" data-action="menu" aria-label="Menu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round">
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
+                    <span>Menu</span>
+                </button>
+                <button class="btn btn-text" id="btn-info" data-action="info" aria-label="Informações">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>Info</span>
+                </button>
+            </section>
+
+            <!-- Divider -->
+            <div class="divider"><span>REPRODUÇÃO</span></div>
+
+            <!-- Media Controls -->
+            <section class="section-row media-row" aria-label="Controles de mídia">
+                <button class="btn btn-media" id="btn-prev" data-action="prev" aria-label="Anterior">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="19 20 9 12 19 4 19 20" />
+                        <line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2.5"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+                <button class="btn btn-media btn-rewind" id="btn-rewind" data-action="rewind" aria-label="Voltar 10s">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round">
+                        <polyline points="1 4 1 10 7 10" />
+                        <path d="M3.51 15a9 9 0 1 0 .49-3.5" />
+                    </svg>
+                </button>
+                <button class="btn btn-media btn-play-pause" id="btn-play" data-action="play-pause"
+                    aria-label="Play/Pause">
+                    <svg id="icon-play" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <svg id="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+                        <rect x="6" y="4" width="4" height="16" />
+                        <rect x="14" y="4" width="4" height="16" />
+                    </svg>
+                </button>
+                <button class="btn btn-media btn-forward" id="btn-forward" data-action="forward"
+                    aria-label="Avançar 10s">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round">
+                        <polyline points="23 4 23 10 17 10" />
+                        <path d="M20.49 15a9 9 0 1 1-.49-3.5" />
+                    </svg>
+                </button>
+                <button class="btn btn-media" id="btn-next" data-action="next" aria-label="Próximo">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 4 15 12 5 20 5 4" />
+                        <line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.5"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+            </section>
+
+            <!-- Color Buttons -->
+            <section class="section-row color-row" aria-label="Botões coloridos">
+                <button class="btn btn-color color-red" id="btn-red" data-action="red" aria-label="Vermelho">A</button>
+                <button class="btn btn-color color-green" id="btn-green" data-action="green"
+                    aria-label="Verde">B</button>
+                <button class="btn btn-color color-yellow" id="btn-yellow" data-action="yellow"
+                    aria-label="Amarelo">C</button>
+                <button class="btn btn-color color-blue" id="btn-blue" data-action="blue" aria-label="Azul">D</button>
+            </section>
+
+            <!-- Number Pad -->
+            <div class="divider"><span>NUMÉRICO</span></div>
+            <section class="numpad" aria-label="Teclado numérico">
+                <button class="btn btn-num" id="btn-1" data-action="num-1" aria-label="1">1</button>
+                <button class="btn btn-num" id="btn-2" data-action="num-2" aria-label="2">2</button>
+                <button class="btn btn-num" id="btn-3" data-action="num-3" aria-label="3">3</button>
+                <button class="btn btn-num" id="btn-4" data-action="num-4" aria-label="4">4</button>
+                <button class="btn btn-num" id="btn-5" data-action="num-5" aria-label="5">5</button>
+                <button class="btn btn-num" id="btn-6" data-action="num-6" aria-label="6">6</button>
+                <button class="btn btn-num" id="btn-7" data-action="num-7" aria-label="7">7</button>
+                <button class="btn btn-num" id="btn-8" data-action="num-8" aria-label="8">8</button>
+                <button class="btn btn-num" id="btn-9" data-action="num-9" aria-label="9">9</button>
+                <button class="btn btn-num btn-num-wide" id="btn-dash" data-action="dash" aria-label="Traço">—</button>
+                <button class="btn btn-num" id="btn-0" data-action="num-0" aria-label="0">0</button>
+                <button class="btn btn-num btn-num-wide" id="btn-last" data-action="last-ch"
+                    aria-label="Canal anterior">↩</button>
+            </section>
+
+            <!-- Apps Row -->
+            <div class="divider"><span>APPS</span></div>
+            <section class="apps-row" aria-label="Atalhos de apps">
+                <button class="btn btn-app app-netflix" id="btn-netflix" data-action="netflix" aria-label="Netflix">
+                    <span>N</span>
+                </button>
+                <button class="btn btn-app app-youtube" id="btn-youtube" data-action="youtube" aria-label="YouTube">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19.59 6.69a4.83 4.83 0 01-3.77-2.75 12.63 12.63 0 00-8.89-.42A4.83 4.83 0 013.16 6.14 34.11 34.11 0 002 11.9a34.11 34.11 0 001.16 5.76 4.83 4.83 0 002.17 2.62 12.63 12.63 0 008.67 0 4.83 4.83 0 002.17-2.62A34.11 34.11 0 0017.33 12a34.11 34.11 0 00-1.16-5.76zM9.74 14.85V9.15l5.2 2.85z" />
+                    </svg>
+                </button>
+                <button class="btn btn-app app-prime" id="btn-prime" data-action="prime" aria-label="Prime Video">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
+                    </svg>
+                </button>
+                <button class="btn btn-app app-globo" id="btn-globo" data-action="globo" aria-label="Globoplay">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <path
+                            d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                </button>
+                <button class="btn btn-app app-spotify" id="btn-spotify" data-action="spotify" aria-label="Spotify">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="12" r="10" />
+                        <path fill="white"
+                            d="M17.08 10.56a7 7 0 0 0-8.16-1.35.8.8 0 1 0 .72 1.43 5.4 5.4 0 0 1 6.3 1.04.8.8 0 1 0 1.14-1.12zm.4 2.9a6 6 0 0 0-7.02-1.15.65.65 0 1 0 .58 1.17 4.7 4.7 0 0 1 5.5.9.65.65 0 0 0 .94-.92zm.38 2.82a5 5 0 0 0-5.86-.95.5.5 0 0 0 .45.9 4 4 0 0 1 4.69.76.5.5 0 0 0 .72-.71z" />
+                    </svg>
+                </button>
+            </section>
+
+        </div><!-- /.remote -->
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

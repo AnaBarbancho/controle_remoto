@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TV — Receptor de Controle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <style>
+        /* ── Design Tokens ───────────────────────── */
+        :root {
+            --bg: #07070d;
+            --surface: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+            --accent: #6c63ff;
+            --accent-glow: rgba(108, 99, 255, 0.5);
+            --green: #4dff91;
+            --red: #ff4d4d;
+            --yellow: #ffd24d;
+            --text: #f0f0f8;
+            --muted: rgba(240, 240, 248, 0.4);
+            --font: 'Inter', system-ui, sans-serif;
+            --radius: 20px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background-image:
+                radial-gradient(ellipse 70% 55% at 15% 5%, rgba(108, 99, 255, 0.2) 0%, transparent 55%),
+                radial-gradient(ellipse 55% 45% at 85% 95%, rgba(255, 107, 107, 0.12) 0%, transparent 55%);
+        }
+
+        /* ── Top Bar ─────────────────────────────── */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 40px;
+            flex-shrink: 0;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .tv-logo {
+            width: 44px;
+            height: 44px;
+            background: rgba(108, 99, 255, 0.15);
+            border: 1px solid rgba(108, 99, 255, 0.3);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+        }
+
+        .tv-logo svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .tv-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .tv-subtitle {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 400;
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .clock-tv {
+            font-size: 28px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+        }
+
+        /* ── Waiting Screen ──────────────────────── */
+        #waiting-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .code-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 48px 64px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+        }
+
+        .code-label {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .room-code {
+            font-size: 80px;
+            font-weight: 900;
+            letter-spacing: 0.2em;
+            color: var(--text);
+            line-height: 1;
+            background: linear-gradient(135deg, #fff 0%, rgba(108, 99, 255, 0.8) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 40px rgba(108, 99, 255, 0.5));
+        }
+
+        .code-hint {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.6;
+            max-width: 340px;
+        }
+
+        .code-hint strong {
+            color: var(--text);
+        }
+
+        .waiting-anim {
+            display: flex;
+            gap: 8px;
+        }
+
+        .waiting-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(108, 99, 255, 0.5);
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+
+        .waiting-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .waiting-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .waiting-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0.7);
+                opacity: 0.4;
+            }
+
+            40% {
+                transform: scale(1.2);
+                opacity: 1;
+                background: var(--accent);
+            }
+        }
+
+        /* ── Connected Screen ────────────────────── */
+        #connected-screen {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            padding: 0 40px 40px;
+            gap: 24px;
+            overflow: hidden;
+        }
+
+        /* ── Connected Badge ─────────────────────── */
+        .connected-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(77, 255, 145, 0.1);
+            border: 1px solid rgba(77, 255, 145, 0.3);
+            border-radius: 99px;
+            padding: 8px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--green);
+            width: fit-content;
+        }
+
+        .connected-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.4
+            }
+        }
+
+        /* ── Command Feedback ────────────────────── */
+        .cmd-feedback {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .cmd-icon {
+            font-size: 80px;
+            line-height: 1;
+            filter: drop-shadow(0 0 30px rgba(108, 99, 255, 0.6));
+            animation: cmd-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.2s;
+        }
+
+        @keyframes cmd-pop {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .cmd-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        /* ── Volume bar (TV overlay) ─────────────── */
+        .vol-tv {
+            position: fixed;
+            top: 30px;
+            right: 40px;
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px 22px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+            min-width: 220px;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .vol-tv.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .vol-tv-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .vol-tv-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+        }
+
+        .vol-tv-value {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--accent);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .vol-tv-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .vol-tv-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #9c63ff);
+            border-radius: 3px;
+            transition: width 0.15s;
+        }
+
+        /* ── App Grid ────────────────────────────── */
+        .apps-section {}
+
+        .apps-title {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+        }
+
+        .app-tile {
+            aspect-ratio: 16/10;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-tile.focused {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent), 0 8px 32px var(--accent-glow);
+            transform: scale(1.04);
+        }
+
+        .app-tile svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .tile-netflix {
+            background: rgba(229, 9, 20, 0.12);
+            border-color: rgba(229, 9, 20, 0.3);
+            color: #e91e1e;
+        }
+
+        .tile-youtube {
+            background: rgba(255, 0, 0, 0.10);
+            border-color: rgba(255, 0, 0, 0.25);
+            color: #ff3333;
+        }
+
+        .tile-prime {
+            background: rgba(0, 168, 255, 0.10);
+            border-color: rgba(0, 168, 255, 0.25);
+            color: #00aaff;
+        }
+
+        .tile-globo {
+            background: rgba(255, 140, 0, 0.10);
+            border-color: rgba(255, 140, 0, 0.25);
+            color: #ff9900;
+        }
+
+        .tile-spotify {
+            background: rgba(30, 215, 96, 0.10);
+            border-color: rgba(30, 215, 96, 0.25);
+            color: #1ed760;
+        }
+
+        .tile-netflix-label {
+            font-size: 26px;
+            font-style: italic;
+            font-family: Georgia, serif;
+            font-weight: 900;
+        }
+
+        /* ── Navigation indicator ────────────────── */
+        .nav-flash {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-arrow {
+            font-size: 120px;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: none;
+            filter: drop-shadow(0 0 40px rgba(108, 99, 255, 0.8));
+        }
+
+        .nav-arrow.show {
+            animation: nav-flash-anim 0.4s ease forwards;
+        }
+
+        @keyframes nav-flash-anim {
+            0% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+
+            30% {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+
+            70% {
+                opacity: 0.8;
+                transform: scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+        }
+
+        /* ── Channel indicator ───────────────────── */
+        .channel-indicator {
+            position: fixed;
+            bottom: 40px;
+            left: 40px;
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px 22px;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .channel-indicator.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ── Full-screen flash ───────────────────── */
+        .screen-flash {
+            position: fixed;
+            inset: 0;
+            background: rgba(108, 99, 255, 0.12);
+            pointer-events: none;
+            z-index: 300;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        .screen-flash.active {
+            opacity: 1;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #connected-screen {
+            animation: fade-in 0.4s ease;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Volume bar overlay -->
+    <div class="vol-tv" id="vol-tv">
+        <div class="vol-tv-header">
+            <span class="vol-tv-label">VOL</span>
+            <span class="vol-tv-value" id="vol-tv-value">40</span>
+        </div>
+        <div class="vol-tv-track">
+            <div class="vol-tv-fill" id="vol-tv-fill" style="width:40%"></div>
+        </div>
+    </div>
+
+    <!-- Channel indicator -->
+    <div class="channel-indicator" id="channel-indicator">
+        <span>📺</span>
+        <span id="ch-display">Canal 1</span>
+    </div>
+
+    <!-- Navigation arrow flash -->
+    <div class="nav-flash" id="nav-flash">
+        <div class="nav-arrow" id="nav-arrow"></div>
+    </div>
+
+    <!-- Screen flash -->
+    <div class="screen-flash" id="screen-flash"></div>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <div class="tv-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="2" y="7" width="20" height="15" rx="2" />
+                    <polyline points="17 2 12 7 7 2" />
+                </svg>
+            </div>
+            <div>
+                <div class="tv-title">Controle Remoto</div>
+                <div class="tv-subtitle" id="top-subtitle">Aguardando conexão...</div>
+            </div>
+        </div>
+        <div class="top-bar-right">
+            <div class="clock-tv" id="clock-tv"></div>
+        </div>
+    </div>
+
+    <!-- WAITING SCREEN -->
+    <div id="waiting-screen">
+        <div class="code-card">
+            <div class="code-label">Código da sala</div>
+            <div class="room-code" id="room-code">----</div>
+            <p class="code-hint">
+                Abra o <strong>controle remoto</strong> no seu celular e digite este código para conectar.
+            </p>
+        </div>
+        <div class="waiting-anim">
+            <div class="waiting-dot"></div>
+            <div class="waiting-dot"></div>
+            <div class="waiting-dot"></div>
+        </div>
+        <p style="color: var(--muted); font-size: 14px;">Aguardando o celular conectar...</p>
+    </div>
+
+    <!-- CONNECTED SCREEN -->
+    <div id="connected-screen">
+
+        <!-- Badge -->
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="connected-badge">
+                <span class="connected-dot"></span>
+                <span id="connected-label">📱 Controle conectado</span>
+            </div>
+        </div>
+
+        <!-- Command Feedback -->
+        <div class="cmd-feedback" id="cmd-feedback">
+            <div class="cmd-icon" id="cmd-icon">📺</div>
+            <div class="cmd-name" id="cmd-name">Pronto para usar!</div>
+        </div>
+
+        <!-- App Grid -->
+        <div class="apps-section">
+            <div class="apps-title">Lançador de aplicativos</div>
+            <div class="apps-grid">
+                <div class="app-tile tile-netflix" data-url="https://netflix.com" tabindex="0" aria-label="Netflix">
+                    <span class="tile-netflix-label">N</span>
+                    <span>Netflix</span>
+                </div>
+                <div class="app-tile tile-youtube" data-url="https://youtube.com/tv" tabindex="0" aria-label="YouTube">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19.59 6.69a4.83 4.83 0 01-3.77-2.75 12.63 12.63 0 00-8.89-.42A4.83 4.83 0 013.16 6.14 34.11 34.11 0 002 11.9a34.11 34.11 0 001.16 5.76 4.83 4.83 0 002.17 2.62 12.63 12.63 0 008.67 0 4.83 4.83 0 002.17-2.62A34.11 34.11 0 0017.33 12a34.11 34.11 0 00-1.16-5.76zM9.74 14.85V9.15l5.2 2.85z" />
+                    </svg>
+                    <span>YouTube</span>
+                </div>
+                <div class="app-tile tile-prime" data-url="https://primevideo.com" tabindex="0"
+                    aria-label="Prime Video">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
+                    </svg>
+                    <span>Prime</span>
+                </div>
+                <div class="app-tile tile-globo" data-url="https://globoplay.globo.com" tabindex="0"
+                    aria-label="Globoplay">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path
+                            d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    <span>Globoplay</span>
+                </div>
+                <div class="app-tile tile-spotify" data-url="https://open.spotify.com" tabindex="0"
+                    aria-label="Spotify">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="12" r="10" />
+                        <path fill="white"
+                            d="M17.08 10.56a7 7 0 0 0-8.16-1.35.8.8 0 1 0 .72 1.43 5.4 5.4 0 0 1 6.3 1.04.8.8 0 1 0 1.14-1.12zm.4 2.9a6 6 0 0 0-7.02-1.15.65.65 0 1 0 .58 1.17 4.7 4.7 0 0 1 5.5.9.65.65 0 0 0 .94-.92zm.38 2.82a5 5 0 0 0-5.86-.95.5.5 0 0 0 .45.9 4 4 0 0 1 4.69.76.5.5 0 0 0 .72-.71z" />
+                    </svg>
+                    <span>Spotify</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script>
+        /* ── State ─────────────────────────────── */
+        const tvState = {
+            volume: 40,
+            muted: false,
+            channel: 1,
+            focusedApp: 0,
+            volTimer: null,
+            chTimer: null,
+        };
+
+        /* ── DOM ───────────────────────────────── */
+        const waitingScreen = document.getElementById('waiting-screen');
+        const connectedScreen = document.getElementById('connected-screen');
+        const roomCodeEl = document.getElementById('room-code');
+        const topSubtitle = document.getElementById('top-subtitle');
+        const connectedLabel = document.getElementById('connected-label');
+        const cmdIcon = document.getElementById('cmd-icon');
+        const cmdName = document.getElementById('cmd-name');
+        const clockTV = document.getElementById('clock-tv');
+        const volTv = document.getElementById('vol-tv');
+        const volTvValue = document.getElementById('vol-tv-value');
+        const volTvFill = document.getElementById('vol-tv-fill');
+        const chDisplay = document.getElementById('ch-display');
+        const channelIndicator = document.getElementById('channel-indicator');
+        const navFlash = document.getElementById('nav-flash');
+        const navArrow = document.getElementById('nav-arrow');
+        const screenFlash = document.getElementById('screen-flash');
+        const appTiles = document.querySelectorAll('.app-tile');
+
+        /* ── Clock ─────────────────────────────── */
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            clockTV.textContent = `${h}:${m}`;
+        }
+        updateClock();
+        setInterval(updateClock, 15000);
+
+        /* ── Generate room code ─────────────────── */
+        function genCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+            return code;
+        }
+
+        const ROOM_CODE = genCode();
+        roomCodeEl.textContent = ROOM_CODE;
+
+        /* ── PeerJS setup ─────────────────────── */
+        const tvPeerId = 'ctrl-tv-' + ROOM_CODE;
+        const peer = new Peer(tvPeerId, { debug: 0 });
+
+        peer.on('open', (id) => {
+            topSubtitle.textContent = 'Aguardando celular...';
+        });
+
+        peer.on('error', (err) => {
+            if (err.type === 'unavailable-id') {
+                // ID taken, generate new code
+                const newCode = genCode();
+                roomCodeEl.textContent = newCode;
+                const np = new Peer('ctrl-tv-' + newCode, { debug: 0 });
+                np.on('connection', handleConnection);
+            }
+        });
+
+        peer.on('connection', handleConnection);
+
+        function handleConnection(conn) {
+            topSubtitle.textContent = '📱 Controle conectado!';
+            connectedLabel.textContent = '📱 Celular conectado · ' + ROOM_CODE;
+
+            // Show connected screen
+            waitingScreen.style.display = 'none';
+            connectedScreen.style.display = 'flex';
+
+            conn.on('data', (data) => {
+                if (data && data.action) handleCommand(data);
+            });
+
+            conn.on('close', () => {
+                topSubtitle.textContent = 'Aguardando celular...';
+                waitingScreen.style.display = 'flex';
+                connectedScreen.style.display = 'none';
+                showFeedback('📵', 'Celular desconectado');
+            });
+
+            conn.on('error', () => {
+                topSubtitle.textContent = 'Erro de conexão';
+            });
+        }
+
+        /* ── App focus navigation ─────────────── */
+        function setAppFocus(idx) {
+            appTiles.forEach((t, i) => t.classList.toggle('focused', i === idx));
+            tvState.focusedApp = idx;
+        }
+
+        /* ── Show volume bar ─────────────────── */
+        function showVolBar() {
+            volTvValue.textContent = tvState.muted ? '🔇' : tvState.volume;
+            volTvFill.style.width = tvState.muted ? '0%' : tvState.volume + '%';
+            volTv.classList.add('show');
+            clearTimeout(tvState.volTimer);
+            tvState.volTimer = setTimeout(() => volTv.classList.remove('show'), 2500);
+        }
+
+        /* ── Show channel ────────────────────── */
+        function showChannel() {
+            chDisplay.textContent = 'Canal ' + tvState.channel;
+            channelIndicator.classList.add('show');
+            clearTimeout(tvState.chTimer);
+            tvState.chTimer = setTimeout(() => channelIndicator.classList.remove('show'), 2500);
+        }
+
+        /* ── Nav arrow ───────────────────────── */
+        function showNavArrow(emoji) {
+            navArrow.textContent = emoji;
+            navArrow.className = 'nav-arrow';
+            void navArrow.offsetWidth; // reflow
+            navArrow.classList.add('show');
+        }
+
+        /* ── Flash ───────────────────────────── */
+        function flash() {
+            screenFlash.classList.add('active');
+            setTimeout(() => screenFlash.classList.remove('active'), 120);
+        }
+
+        /* ── Show feedback ───────────────────── */
+        function showFeedback(icon, name) {
+            cmdIcon.textContent = icon;
+            cmdName.textContent = name;
+            // Restart animation
+            cmdIcon.style.animation = 'none';
+            void cmdIcon.offsetWidth;
+            cmdIcon.style.animation = 'cmd-pop 0.3s cubic-bezier(0.34,1.56,0.64,1)';
+        }
+
+        /* ── Command handler ─────────────────── */
+        const appUrls = {
+            netflix: 'https://netflix.com',
+            youtube: 'https://youtube.com/tv',
+            prime: 'https://primevideo.com',
+            globo: 'https://globoplay.globo.com',
+            spotify: 'https://open.spotify.com',
+        };
+
+        function handleCommand(data) {
+            const { action } = data;
+
+            switch (action) {
+                case 'power':
+                    showFeedback('⏻', 'Ligar / Desligar');
+                    flash();
+                    break;
+                case 'source':
+                    showFeedback('🔌', 'Selecionar Fonte');
+                    break;
+                case 'home':
+                    showFeedback('🏠', 'Tela Inicial');
+                    setAppFocus(0);
+                    break;
+
+                case 'vol-up':
+                    tvState.volume = Math.min(100, data.value || tvState.volume + 5);
+                    tvState.muted = false;
+                    showVolBar();
+                    showFeedback('🔊', 'Volume ' + tvState.volume);
+                    break;
+                case 'vol-down':
+                    tvState.volume = Math.max(0, data.value || tvState.volume - 5);
+                    tvState.muted = false;
+                    showVolBar();
+                    showFeedback('🔉', 'Volume ' + tvState.volume);
+                    break;
+                case 'mute':
+                    tvState.muted = data.muted !== undefined ? data.muted : !tvState.muted;
+                    showVolBar();
+                    showFeedback(tvState.muted ? '🔇' : '🔊', tvState.muted ? 'Mudo ativado' : 'Mudo desativado');
+                    break;
+
+                case 'up':
+                    showNavArrow('⬆️');
+                    showFeedback('⬆️', 'Cima');
+                    // Navigate apps up row
+                    if (tvState.focusedApp >= 0) setAppFocus(Math.max(0, tvState.focusedApp - 1));
+                    break;
+                case 'down':
+                    showNavArrow('⬇️');
+                    showFeedback('⬇️', 'Baixo');
+                    if (tvState.focusedApp >= 0) setAppFocus(Math.min(appTiles.length - 1, tvState.focusedApp + 1));
+                    break;
+                case 'left':
+                    showNavArrow('⬅️');
+                    showFeedback('⬅️', 'Esquerda');
+                    if (tvState.focusedApp > 0) setAppFocus(tvState.focusedApp - 1);
+                    break;
+                case 'right':
+                    showNavArrow('➡️');
+                    showFeedback('➡️', 'Direita');
+                    if (tvState.focusedApp < appTiles.length - 1) setAppFocus(tvState.focusedApp + 1);
+                    break;
+                case 'ok':
+                    flash();
+                    const focusedTile = appTiles[tvState.focusedApp];
+                    if (focusedTile) {
+                        const url = focusedTile.dataset.url;
+                        showFeedback('✔️', 'Abrindo ' + (focusedTile.getAttribute('aria-label') || ''));
+                        setTimeout(() => window.open(url, '_blank', 'noopener'), 400);
+                    } else {
+                        showFeedback('✔️', 'OK');
+                    }
+                    break;
+                case 'back':
+                    showFeedback('↩️', 'Voltar');
+                    history.back();
+                    break;
+                case 'menu':
+                    showFeedback('☰', 'Menu');
+                    break;
+                case 'info':
+                    showFeedback('ℹ️', 'Informações');
+                    break;
+
+                case 'ch-up':
+                    tvState.channel = data.channel || tvState.channel + 1;
+                    showChannel();
+                    showFeedback('📺', 'Canal ' + tvState.channel);
+                    break;
+                case 'ch-down':
+                    tvState.channel = data.channel || Math.max(1, tvState.channel - 1);
+                    showChannel();
+                    showFeedback('📺', 'Canal ' + tvState.channel);
+                    break;
+                case 'guide':
+                    showFeedback('📋', 'Guia de Programação');
+                    break;
+
+                case 'play-pause':
+                    showFeedback(data.playing ? '▶️' : '⏸️', data.playing ? 'Reproduzindo' : 'Pausado');
+                    flash();
+                    break;
+                case 'prev':
+                    showFeedback('⏮️', 'Anterior');
+                    break;
+                case 'next':
+                    showFeedback('⏭️', 'Próximo');
+                    break;
+                case 'rewind':
+                    showFeedback('⏪', 'Voltar 10s');
+                    break;
+                case 'forward':
+                    showFeedback('⏩', 'Avançar 10s');
+                    break;
+
+                case 'red': showFeedback('🔴', 'A — Vermelho'); break;
+                case 'green': showFeedback('🟢', 'B — Verde'); break;
+                case 'yellow': showFeedback('🟡', 'C — Amarelo'); break;
+                case 'blue': showFeedback('🔵', 'D — Azul'); break;
+
+                case 'last-ch':
+                    showFeedback('↩', 'Canal anterior');
+                    break;
+
+                case 'app':
+                    const appName = data.app || '';
+                    const appUrl = data.url || appUrls[appName];
+                    showFeedback({ netflix: '🎬', youtube: '▶️', prime: '📦', globo: '🌐', spotify: '🎵' }[appName] || '📱', 'Abrindo ' + appName);
+                    flash();
+                    if (appUrl) setTimeout(() => window.open(appUrl, '_blank', 'noopener'), 500);
+                    break;
+
+                default:
+                    // Number digits
+                    if (action && action.startsWith('num-')) {
+                        const digit = action.replace('num-', '');
+                        showFeedback('🔢', 'Número ' + digit);
+                    }
+            }
+        }
+
+        /* ── Click app tiles with mouse ─────── */
+        appTiles.forEach((tile, i) => {
+            tile.addEventListener('click', () => {
+                setAppFocus(i);
+                const url = tile.dataset.url;
+                if (url) window.open(url, '_blank', 'noopener');
+            });
+        });
+
+        /* ── Wake Lock ───────────────────────── */
+        async function requestWakeLock() {
+            try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (_) { }
+        }
+        requestWakeLock();
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') requestWakeLock();
+        });
+    </script>
+</body>
+
+</html>
