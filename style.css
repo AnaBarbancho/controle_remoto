@@ -125,7 +125,8 @@ body {
 
 .connect-input-group {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 15px;
   width: 100%;
 }
 
